@@ -1,0 +1,8 @@
+{
+  "name": "AstroLog",
+  "description": "An application for amateur astronomers to log their telescope observations, discover what's visible in the night sky, and keep track of celestial events.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
