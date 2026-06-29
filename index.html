@@ -1,30 +1,1002 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AstroLog - Your Celestial Companion</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      body {
-        background-color: #0f172a;
-        color: #f8fafc;
-      }
-    </style>
-    <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.1.1/",
-    "react": "https://esm.sh/react@^19.1.1",
-    "@google/genai": "https://esm.sh/@google/genai@^1.12.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.1/"
-  }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AstroLog - Your Celestial Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; }
+    * { box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script type="text/babel">
+// ── React globals ──────────────────────────────────────────────────────────
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+// ── types.ts ───────────────────────────────────────────────────────────────
+const ObjectType = {
+  Star: 'Star', Galaxy: 'Galaxy', Nebula: 'Nebula', Planet: 'Planet',
+  Comet: 'Comet', Asteroid: 'Asteroid', Cluster: 'Cluster',
+  BlackHole: 'BlackHole', Pulsar: 'Pulsar', Other: 'Other'
+};
+
+const DistanceUnit = {
+  LightYears: 'LightYears', Parsecs: 'Parsecs', AU: 'AU',
+  Km: 'Km', MillionLightYears: 'MillionLightYears'
+};
+
+const Tab = {
+  Home: 'Home', Observations: 'Observations',
+  Resources: 'Resources', Calendar: 'Calendar', Settings: 'Settings'
+};
+
+// ── constants.ts ───────────────────────────────────────────────────────────
+const TABS = [
+  { id: Tab.Home, label: '🔭 Home' },
+  { id: Tab.Observations, label: '📓 Observations' },
+  { id: Tab.Resources, label: '📡 Resources' },
+  { id: Tab.Calendar, label: '📅 Calendar' },
+  { id: Tab.Settings, label: '⚙️ Settings' },
+];
+
+const INITIAL_OBSERVATIONS = [
+  {
+    id: '1',
+    objectName: 'Andromeda Galaxy',
+    type: ObjectType.Galaxy,
+    observationDate: '15102024',
+    location: 'Dark Sky Park',
+    ra: '00h 42m 44s',
+    dec: '+41° 16′ 09″',
+    magnitude: '3.44',
+    distanceValue: '2.537',
+    distanceUnit: DistanceUnit.MillionLightYears,
+    description: 'Stunning naked-eye visibility. Could see the core clearly. Slight elongation visible through 10x50 binoculars.',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Andromeda_Galaxy_%28with_h-alpha%29.jpg/1200px-Andromeda_Galaxy_%28with_h-alpha%29.jpg',
+    isFavorite: true,
+  },
+  {
+    id: '2',
+    objectName: 'Orion Nebula (M42)',
+    type: ObjectType.Nebula,
+    observationDate: '20112024',
+    location: 'Backyard',
+    ra: '05h 35m 17s',
+    dec: '-05° 23′ 28″',
+    magnitude: '4.0',
+    distanceValue: '1344',
+    distanceUnit: DistanceUnit.LightYears,
+    description: 'Brilliant green-grey nebulosity. The Trapezium cluster clearly resolved in the centre.',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg/1200px-Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg',
+    isFavorite: false,
+  },
+];
+
+const ASTRONOMICAL_CATALOGS = [
+  { id: 'messier', name: 'Messier Catalog', description: 'Galaxies, nebulae, and clusters' },
+  { id: 'ngc', name: 'NGC Catalog', description: 'New General Catalogue deep-sky objects' },
+  { id: 'planets', name: 'Solar System', description: 'Planets, moons, and minor bodies' },
+  { id: 'stars', name: 'Bright Stars', description: 'Named and notable stars' },
+];
+
+const ASTRONOMY_LINKS = [
+  { name: 'Stellarium Web', url: 'https://stellarium-web.org/', description: 'Online planetarium' },
+  { name: 'Clear Outside', url: 'https://clearoutside.com/', description: 'Weather for astronomers' },
+  { name: 'NASA APOD', url: 'https://apod.nasa.gov/', description: 'Astronomy picture of the day' },
+  { name: 'Sky & Telescope', url: 'https://skyandtelescope.org/', description: 'News and observing guides' },
+  { name: 'Astrometry.net', url: 'https://nova.astrometry.net/', description: 'Plate-solve your images' },
+];
+
+function generateAstroEvents(year) {
+  return [
+    { date: `${year}-01-03`, name: 'Quadrantid Meteor Shower Peak', description: 'One of the best annual meteor showers, with up to 40 meteors per hour.' },
+    { date: `${year}-04-21`, name: 'Lyrid Meteor Shower Peak', description: 'An annual meteor shower lasting from April 16-25.' },
+    { date: `${year}-05-05`, name: 'Eta Aquarid Meteor Shower Peak', description: 'Above average shower producing 60 meteors per hour at its peak.' },
+    { date: `${year}-07-28`, name: 'Delta Aquarid Meteor Shower Peak', description: 'Average shower with 20 meteors per hour at peak.' },
+    { date: `${year}-08-11`, name: 'Perseid Meteor Shower Peak', description: 'The most popular meteor shower, with up to 100 meteors per hour.' },
+    { date: `${year}-10-08`, name: 'Draconid Meteor Shower Peak', description: 'A minor shower with 10 meteors per hour.' },
+    { date: `${year}-10-21`, name: 'Orionid Meteor Shower Peak', description: 'Average shower with 20 meteors per hour at peak.' },
+    { date: `${year}-11-17`, name: 'Leonid Meteor Shower Peak', description: 'An average shower with 15 meteors per hour.' },
+    { date: `${year}-12-13`, name: 'Geminid Meteor Shower Peak', description: 'Considered the best shower, with up to 120 multicolored meteors per hour.' },
+    { date: `${year}-12-21`, name: 'Ursid Meteor Shower Peak', description: 'A minor shower with 10 meteors per hour.' },
+  ];
 }
-    </script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
-  </body>
+
+const currentYear = new Date().getFullYear();
+const ASTRO_EVENTS = [
+  ...generateAstroEvents(currentYear - 1),
+  ...generateAstroEvents(currentYear),
+  ...generateAstroEvents(currentYear + 1),
+];
+
+// ── services/geminiService.ts ──────────────────────────────────────────────
+async function getVisibleObjects(location, date, time, catalog, apiKey) {
+  if (!apiKey) throw new Error('API key not set. Please add your Gemini API key in Settings.');
+  const { GoogleGenAI } = await import('https://esm.sh/@google/genai@^1.12.0');
+  const genAI = new GoogleGenAI({ apiKey });
+  const prompt = `You are an expert astronomer. Given the following observation details, provide a list of interesting celestial objects that would be visible.
+Location: ${location}
+Date: ${date}
+Time: ${time}
+Catalog: ${catalog}
+
+Please respond with a JSON array of objects. Each object should have these fields:
+- name (string): the common name
+- type (string): one of Star, Galaxy, Nebula, Planet, Comet, Asteroid, Cluster, BlackHole, Pulsar, Other
+- magnitude (string): apparent magnitude
+- distanceValue (string): numeric distance value
+- distanceUnit (string): one of LightYears, Parsecs, AU, Km, MillionLightYears
+- constellation (string): constellation it's in
+- description (string): brief interesting description (1-2 sentences)
+- imageUrl (string): a real URL to a Wikipedia Commons or NASA image of this object
+
+Respond ONLY with the JSON array, no markdown, no explanation.`;
+
+  const response = await genAI.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  });
+  const text = response.text();
+  const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return JSON.parse(clean);
+}
+
+async function getLocationSuggestions(query, apiKey) {
+  if (!apiKey) return [];
+  const { GoogleGenAI } = await import('https://esm.sh/@google/genai@^1.12.0');
+  const genAI = new GoogleGenAI({ apiKey });
+  const prompt = `Suggest 5 astronomy observation locations matching: "${query}". Return a JSON array of strings (location names only). No markdown.`;
+  const response = await genAI.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  });
+  const text = response.text();
+  const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return JSON.parse(clean);
+}
+
+// ── components/ImageViewer ─────────────────────────────────────────────────
+const ImageViewer = ({ src, alt, onClose }) => {
+  const [scale, setScale] = useState(1);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    setScale(s => Math.max(0.5, Math.min(5, s - e.deltaY * 0.001)));
+  };
+
+  const handleMouseDown = (e) => {
+    setDragging(true);
+    setStartPos({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragging) return;
+    setPos({ x: e.clientX - startPos.x, y: e.clientY - startPos.y });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={() => setDragging(false)}
+      onClick={onClose}
+    >
+      <button className="absolute top-4 right-4 text-white text-3xl z-10" onClick={onClose}>✕</button>
+      <img
+        src={src} alt={alt}
+        style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`, cursor: dragging ? 'grabbing' : 'grab', maxWidth: '90vw', maxHeight: '90vh', userSelect: 'none' }}
+        onClick={e => e.stopPropagation()}
+        draggable={false}
+      />
+    </div>
+  );
+};
+
+// ── components/Header ─────────────────────────────────────────────────────
+const Header = ({ activeTab, setActiveTab }) => (
+  <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-700 shadow-lg">
+    <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">🌌</span>
+        <h1 className="text-xl font-bold text-cyan-400 tracking-tight">AstroLog</h1>
+        <span className="text-slate-400 text-sm hidden sm:block">Your Celestial Companion</span>
+      </div>
+      <nav className="flex flex-wrap gap-1 justify-center">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'bg-cyan-600 text-white'
+                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  </header>
+);
+
+// ── components/ObservationCard ─────────────────────────────────────────────
+const ObservationCard = ({ observation, onEdit, onToggleFavorite }) => {
+  const formatDate = (d) => {
+    if (!d || d.length < 8) return d;
+    return `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4,8)}`;
+  };
+
+  return (
+    <div className="bg-slate-800 rounded-lg overflow-hidden shadow-lg flex flex-col hover:ring-2 hover:ring-cyan-500 transition-all">
+      <div className="relative h-40 bg-slate-700">
+        {observation.imageUrl ? (
+          <img src={observation.imageUrl} alt={observation.objectName} className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl">🔭</div>
+        )}
+        <button
+          onClick={() => onToggleFavorite(observation.id)}
+          className="absolute top-2 right-2 text-xl"
+          title="Toggle favourite"
+        >
+          {observation.isFavorite ? '⭐' : '☆'}
+        </button>
+      </div>
+      <div className="p-4 flex flex-col flex-1">
+        <h3 className="font-bold text-white text-lg leading-tight">{observation.objectName}</h3>
+        <p className="text-slate-400 text-sm">{observation.type} · {formatDate(observation.observationDate)}</p>
+        <p className="text-slate-300 text-sm mt-2 flex-1 line-clamp-3">{observation.description}</p>
+        <button
+          onClick={() => onEdit(observation)}
+          className="mt-3 w-full bg-slate-700 hover:bg-slate-600 text-white text-sm py-1.5 rounded transition-colors"
+        >
+          Edit
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ── components/AddObservationForm ──────────────────────────────────────────
+const AddObservationForm = ({ observation, onSave, onClose }) => {
+  const [form, setForm] = useState(observation || {
+    objectName: '', type: ObjectType.Star, observationDate: '',
+    location: '', ra: '', dec: '', magnitude: '',
+    distanceValue: '', distanceUnit: DistanceUnit.LightYears,
+    description: '', imageUrl: '', isFavorite: false,
+  });
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({ ...form, id: form.id || String(Date.now()) });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <form
+        onSubmit={handleSubmit}
+        className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold text-white">{observation ? 'Edit Observation' : 'Add Observation'}</h2>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-white text-xl">✕</button>
+        </div>
+
+        <div>
+          <label className="text-sm text-slate-300 block mb-1">Object Name *</label>
+          <input required value={form.objectName} onChange={e => set('objectName', e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Type</label>
+            <select value={form.type} onChange={e => set('type', e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white">
+              {Object.values(ObjectType).map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Date (DDMMYYYY)</label>
+            <input value={form.observationDate} onChange={e => set('observationDate', e.target.value)}
+              placeholder="01062025"
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm text-slate-300 block mb-1">Location</label>
+          <input value={form.location} onChange={e => set('location', e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">RA</label>
+            <input value={form.ra} onChange={e => set('ra', e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Dec</label>
+            <input value={form.dec} onChange={e => set('dec', e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Magnitude</label>
+            <input value={form.magnitude} onChange={e => set('magnitude', e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Distance</label>
+            <input value={form.distanceValue} onChange={e => set('distanceValue', e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm text-slate-300 block mb-1">Distance Unit</label>
+          <select value={form.distanceUnit} onChange={e => set('distanceUnit', e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white">
+            {Object.values(DistanceUnit).map(u => <option key={u}>{u}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm text-slate-300 block mb-1">Description</label>
+          <textarea rows={3} value={form.description} onChange={e => set('description', e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+        </div>
+
+        <div>
+          <label className="text-sm text-slate-300 block mb-1">Image URL</label>
+          <input value={form.imageUrl} onChange={e => set('imageUrl', e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={form.isFavorite} onChange={e => set('isFavorite', e.target.checked)} className="accent-cyan-500" />
+          <span className="text-slate-300 text-sm">Mark as favourite</span>
+        </label>
+
+        <div className="flex gap-3">
+          <button type="submit" className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded transition-colors">Save</button>
+          <button type="button" onClick={onClose} className="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded transition-colors">Cancel</button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// ── components/ObservationDetailModal ─────────────────────────────────────
+const ObservationDetailModal = ({ observation, onClose, onEdit }) => {
+  const [viewerImg, setViewerImg] = useState(null);
+
+  const formatDate = (d) => {
+    if (!d || d.length < 8) return d;
+    return `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4,8)}`;
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {observation.imageUrl && (
+          <div className="relative h-64 cursor-zoom-in" onClick={() => setViewerImg(observation.imageUrl)}>
+            <img src={observation.imageUrl} alt={observation.objectName} className="w-full h-full object-cover rounded-t-lg" />
+          </div>
+        )}
+        <div className="p-6 space-y-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold text-white">{observation.objectName}</h2>
+              <p className="text-slate-400">{observation.type} · {formatDate(observation.observationDate)}</p>
+            </div>
+            <button onClick={onClose} className="text-slate-400 hover:text-white text-xl ml-4">✕</button>
+          </div>
+          {observation.location && <p className="text-slate-300"><span className="text-slate-400">📍 </span>{observation.location}</p>}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {observation.ra && <div><span className="text-slate-400">RA:</span> <span className="text-white">{observation.ra}</span></div>}
+            {observation.dec && <div><span className="text-slate-400">Dec:</span> <span className="text-white">{observation.dec}</span></div>}
+            {observation.magnitude && <div><span className="text-slate-400">Magnitude:</span> <span className="text-white">{observation.magnitude}</span></div>}
+            {observation.distanceValue && <div><span className="text-slate-400">Distance:</span> <span className="text-white">{observation.distanceValue} {observation.distanceUnit}</span></div>}
+          </div>
+          {observation.description && <p className="text-slate-200 leading-relaxed">{observation.description}</p>}
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => onEdit(observation)} className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded transition-colors">Edit</button>
+            <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded transition-colors">Close</button>
+          </div>
+        </div>
+      </div>
+      {viewerImg && <ImageViewer src={viewerImg} alt={observation.objectName} onClose={() => setViewerImg(null)} />}
+    </div>
+  );
+};
+
+// ── components/ObservationsPage ────────────────────────────────────────────
+const ObservationsPage = ({ observations, setObservations }) => {
+  const [filter, setFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [showForm, setShowForm] = useState(false);
+  const [editObs, setEditObs] = useState(null);
+  const [detailObs, setDetailObs] = useState(null);
+
+  const filtered = useMemo(() => observations.filter(o => {
+    const matchText = o.objectName.toLowerCase().includes(filter.toLowerCase()) ||
+      o.description?.toLowerCase().includes(filter.toLowerCase());
+    const matchType = typeFilter === 'All' || o.type === typeFilter;
+    return matchText && matchType;
+  }), [observations, filter, typeFilter]);
+
+  const handleSave = (obs) => {
+    setObservations(prev => {
+      const exists = prev.find(o => o.id === obs.id);
+      if (exists) return prev.map(o => o.id === obs.id ? obs : o);
+      return [...prev, obs];
+    });
+    setShowForm(false);
+    setEditObs(null);
+  };
+
+  const handleToggleFav = (id) => {
+    setObservations(prev => prev.map(o => o.id === id ? { ...o, isFavorite: !o.isFavorite } : o));
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Delete this observation?')) {
+      setObservations(prev => prev.filter(o => o.id !== id));
+      setDetailObs(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-white">My Observations</h2>
+          <p className="text-slate-400 mt-1">{filtered.length} of {observations.length} objects</p>
+        </div>
+        <button onClick={() => { setEditObs(null); setShowForm(true); }}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-4 py-2 rounded-md transition-colors">
+          + Add Observation
+        </button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          value={filter} onChange={e => setFilter(e.target.value)}
+          placeholder="Search observations..."
+          className="flex-1 bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:border-cyan-500"
+        />
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+          className="bg-slate-700 border border-slate-600 rounded-md p-2 text-white">
+          <option value="All">All Types</option>
+          {Object.values(ObjectType).map(t => <option key={t}>{t}</option>)}
+        </select>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-20 text-slate-400">
+          <p className="text-4xl mb-4">🔭</p>
+          <p>No observations found. Start logging!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.map(obs => (
+            <div key={obs.id} onClick={() => setDetailObs(obs)} className="cursor-pointer">
+              <ObservationCard
+                observation={obs}
+                onEdit={(o) => { setEditObs(o); setShowForm(true); }}
+                onToggleFavorite={handleToggleFav}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm && (
+        <AddObservationForm
+          observation={editObs}
+          onSave={handleSave}
+          onClose={() => { setShowForm(false); setEditObs(null); }}
+        />
+      )}
+      {detailObs && (
+        <ObservationDetailModal
+          observation={detailObs}
+          onClose={() => setDetailObs(null)}
+          onEdit={(o) => { setDetailObs(null); setEditObs(o); setShowForm(true); }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ── components/HomePage ────────────────────────────────────────────────────
+const VisibleObjectCard = ({ obj, onAdd }) => (
+  <div className="bg-slate-800 rounded-lg overflow-hidden shadow-lg flex flex-col">
+    <div className="h-36 bg-slate-700 relative">
+      {obj.imageUrl ? (
+        <img src={obj.imageUrl} alt={obj.name} className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-4xl">✨</div>
+      )}
+    </div>
+    <div className="p-4 flex flex-col flex-1">
+      <h3 className="font-bold text-white">{obj.name}</h3>
+      <p className="text-slate-400 text-sm">{obj.type} · mag {obj.magnitude}</p>
+      {obj.constellation && <p className="text-slate-500 text-xs">{obj.constellation}</p>}
+      <p className="text-slate-300 text-sm mt-2 flex-1">{obj.description}</p>
+      <button onClick={() => onAdd(obj)} className="mt-3 bg-cyan-700 hover:bg-cyan-600 text-white text-sm py-1.5 rounded transition-colors">
+        + Log Observation
+      </button>
+    </div>
+  </div>
+);
+
+const HomePage = ({ observations, setObservations, apiKey }) => {
+  const [location, setLocation] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [time, setTime] = useState('22:00');
+  const [catalog, setCatalog] = useState('messier');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [error, setError] = useState('');
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!location) { setError('Please enter a location.'); return; }
+    setLoading(true); setError(''); setResults([]);
+    try {
+      const objects = await getVisibleObjects(location, date, time, catalog, apiKey);
+      setResults(objects);
+    } catch (err) {
+      setError(err.message || 'Failed to get results. Check your API key.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToLog = (obj) => {
+    const newObs = {
+      id: String(Date.now()),
+      objectName: obj.name,
+      type: obj.type || ObjectType.Other,
+      observationDate: date.replace(/-/g, '').slice(6) + date.replace(/-/g, '').slice(4,6) + date.replace(/-/g, '').slice(0,4),
+      location,
+      ra: obj.ra || '',
+      dec: obj.dec || '',
+      magnitude: String(obj.magnitude || ''),
+      distanceValue: String(obj.distanceValue || ''),
+      distanceUnit: obj.distanceUnit || DistanceUnit.LightYears,
+      description: obj.description || '',
+      imageUrl: obj.imageUrl || '',
+      isFavorite: false,
+    };
+    setObservations(prev => [...prev, newObs]);
+    alert(`${obj.name} added to your observations!`);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold text-white">What's Visible Tonight?</h2>
+        <p className="text-slate-300 mt-2">Use AI to discover celestial objects visible from your location.</p>
+        {!apiKey && (
+          <div className="mt-3 p-3 bg-yellow-900/50 border border-yellow-600 rounded-lg text-yellow-200 text-sm">
+            ⚠️ Gemini API key not set. Go to <strong>Settings</strong> tab to add your key.
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={handleSearch} className="bg-slate-800 p-6 rounded-lg shadow-lg space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Location *</label>
+            <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Lisbon, Portugal"
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Catalog</label>
+            <select value={catalog} onChange={e => setCatalog(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white">
+              {ASTRONOMICAL_CATALOGS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Date</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="text-sm text-slate-300 block mb-1">Time</label>
+            <input type="time" value={time} onChange={e => setTime(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+        </div>
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+        <button type="submit" disabled={loading || !apiKey}
+          className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-2 rounded-md transition-colors">
+          {loading ? '🔍 Searching...' : '🔭 Find Visible Objects'}
+        </button>
+      </form>
+
+      {results.length > 0 && (
+        <div>
+          <h3 className="text-xl font-semibold text-white mb-4">Visible Objects ({results.length})</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {results.map((obj, i) => (
+              <VisibleObjectCard key={i} obj={obj} onAdd={handleAddToLog} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── components/ResourcesPage ───────────────────────────────────────────────
+const getMoonPhase = () => {
+  const known = new Date(2000, 0, 6);
+  const now = new Date();
+  const diff = (now - known) / (1000 * 60 * 60 * 24);
+  const cycle = 29.53058867;
+  const phase = ((diff % cycle) + cycle) % cycle;
+  if (phase < 1.85) return { emoji: '🌑', name: 'New Moon' };
+  if (phase < 7.38) return { emoji: '🌒', name: 'Waxing Crescent' };
+  if (phase < 9.22) return { emoji: '🌓', name: 'First Quarter' };
+  if (phase < 14.77) return { emoji: '🌔', name: 'Waxing Gibbous' };
+  if (phase < 16.61) return { emoji: '🌕', name: 'Full Moon' };
+  if (phase < 22.15) return { emoji: '🌖', name: 'Waning Gibbous' };
+  if (phase < 23.99) return { emoji: '🌗', name: 'Last Quarter' };
+  return { emoji: '🌘', name: 'Waning Crescent' };
+};
+
+const ResourcesPage = () => {
+  const moon = getMoonPhase();
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold text-white">Resources</h2>
+        <p className="text-slate-300 mt-2">Tools and links for astronomers.</p>
+      </div>
+
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
+        <h3 className="text-xl font-semibold text-cyan-400 mb-4">Current Moon Phase</h3>
+        <div className="flex items-center gap-4">
+          <span className="text-6xl">{moon.emoji}</span>
+          <div>
+            <p className="text-2xl font-bold text-white">{moon.name}</p>
+            <p className="text-slate-400 text-sm">Approximate phase for today</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
+        <h3 className="text-xl font-semibold text-cyan-400 mb-4">Astronomy Links</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {ASTRONOMY_LINKS.map(link => (
+            <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-start gap-3 p-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors group">
+              <span className="text-xl">🔗</span>
+              <div>
+                <p className="font-semibold text-white group-hover:text-cyan-400 transition-colors">{link.name}</p>
+                <p className="text-slate-400 text-sm">{link.description}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
+        <h3 className="text-xl font-semibold text-cyan-400 mb-4">Seeing Forecast</h3>
+        <div className="rounded-lg overflow-hidden">
+          <iframe
+            src="https://www.meteoblue.com/en/weather/outdoorsports/seeing/lisbon_portugal_2267057?utm_source=seeing_widget&utm_medium=linkus&utm_content=seeing&utm_campaign=Weather%2BWidget"
+            frameBorder="0" scrolling="NO" allowTransparency={true}
+            sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
+            style={{ width: '100%', height: '590px' }}
+            title="Seeing Forecast"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── components/CalendarPage ────────────────────────────────────────────────
+const DayDetailsModal = ({ date, event, observations, onClose }) => {
+  const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4" onClick={onClose}>
+      <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-2 right-2 text-slate-400 hover:text-white p-2 rounded-full">✕</button>
+        <div className="p-6">
+          <h3 className="text-xl font-bold text-white mb-4">{formattedDate}</h3>
+          <div className="space-y-4">
+            {event && (
+              <div>
+                <h4 className="font-semibold text-lg text-purple-400">Celestial Event</h4>
+                <p className="font-bold text-slate-100">{event.name}</p>
+                <p className="text-sm text-slate-300">{event.description}</p>
+              </div>
+            )}
+            {observations.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-lg text-cyan-400">Your Observations</h4>
+                <ul className="space-y-2 mt-2">
+                  {observations.map(obs => (
+                    <li key={obs.id} className="text-sm text-slate-200 p-2 bg-slate-700/50 rounded-md">
+                      <span className="font-bold">{obs.objectName}</span> ({obs.type})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CalendarPage = ({ observations }) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const observationDates = useMemo(() => {
+    const dates = new Set();
+    observations.forEach(obs => {
+      if (obs.observationDate && obs.observationDate.length >= 8) {
+        const yyyy = obs.observationDate.slice(4, 8);
+        const mm = obs.observationDate.slice(2, 4);
+        const dd = obs.observationDate.slice(0, 2);
+        dates.add(`${yyyy}-${mm}-${dd}`);
+      }
+    });
+    return dates;
+  }, [observations]);
+
+  const eventDates = useMemo(() => {
+    const m = new Map();
+    ASTRO_EVENTS.forEach(e => m.set(e.date, e));
+    return m;
+  }, []);
+
+  const upcomingEvents = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const limit = new Date(today); limit.setMonth(today.getMonth() + 4);
+    return ASTRO_EVENTS.filter(e => {
+      const d = new Date(e.date + 'T00:00:00');
+      return d >= today && d <= limit;
+    });
+  }, []);
+
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const blanks = Array.from({ length: firstDay });
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold text-white">Celestial Calendar</h2>
+        <p className="text-slate-300 mt-2">Track major events and your observation history.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-slate-800 p-6 rounded-lg shadow-lg">
+          <div className="flex justify-between items-center mb-4">
+            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 rounded-full hover:bg-slate-700">‹</button>
+            <h3 className="text-xl font-semibold text-cyan-400">
+              {currentDate.toLocaleString('default', { month: 'long' })} {year}
+            </h3>
+            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 rounded-full hover:bg-slate-700">›</button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {weekDays.map(d => <div key={d} className="font-bold text-slate-400 text-sm">{d}</div>)}
+            {blanks.map((_, i) => <div key={`b-${i}`}></div>)}
+            {days.map(day => {
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const isObs = observationDates.has(dateStr);
+              const event = eventDates.get(dateStr);
+              let cls = "h-14 flex items-center justify-center text-sm rounded-lg transition-colors ";
+              if (isObs && event) cls += "bg-gradient-to-br from-purple-500 to-cyan-500 text-white font-bold cursor-pointer";
+              else if (isObs) cls += "bg-cyan-600/70 hover:bg-cyan-500 text-white font-semibold cursor-pointer";
+              else if (event) cls += "bg-purple-600/70 hover:bg-purple-500 text-white font-semibold cursor-pointer";
+              else cls += "bg-slate-700/50 text-slate-300";
+              return (
+                <div key={day} className={cls} title={event?.name}
+                  onClick={() => (isObs || event) && setSelectedDate(dateStr)}>
+                  {day}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-300">
+            <span className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-cyan-600/70 inline-block"></span>Observation</span>
+            <span className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-purple-600/70 inline-block"></span>Event</span>
+            <span className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-cyan-500 inline-block"></span>Both</span>
+          </div>
+        </div>
+
+        <div className="lg:col-span-1 bg-slate-800 p-6 rounded-lg shadow-lg max-h-[600px] overflow-y-auto">
+          <h3 className="text-xl font-semibold text-cyan-400 mb-4">Upcoming Events</h3>
+          <ul className="space-y-4">
+            {upcomingEvents.length > 0 ? upcomingEvents.map(ev => (
+              <li key={ev.name} className="border-l-4 border-purple-500 pl-4">
+                <p className="font-bold text-slate-100">{ev.name}</p>
+                <p className="text-sm text-slate-400">
+                  {new Date(ev.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                </p>
+                <p className="text-sm text-slate-300 mt-1">{ev.description}</p>
+              </li>
+            )) : <li className="text-slate-400">No major events in the next four months.</li>}
+          </ul>
+        </div>
+      </div>
+
+      {selectedDate && (
+        <DayDetailsModal
+          date={selectedDate}
+          event={eventDates.get(selectedDate)}
+          observations={observations.filter(obs => {
+            if (!obs.observationDate || obs.observationDate.length < 8) return false;
+            const yyyy = obs.observationDate.slice(4, 8);
+            const mm = obs.observationDate.slice(2, 4);
+            const dd = obs.observationDate.slice(0, 2);
+            return `${yyyy}-${mm}-${dd}` === selectedDate;
+          })}
+          onClose={() => setSelectedDate(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+// ── components/SettingsPage ────────────────────────────────────────────────
+const SettingsPage = ({ observations, setObservations, apiKey, setApiKey }) => {
+  const fileInputRef = useRef(null);
+  const [keyInput, setKeyInput] = useState(apiKey || '');
+
+  const handleSave = () => {
+    const dataStr = JSON.stringify(observations, null, 2);
+    const uri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const a = document.createElement('a');
+    a.setAttribute('href', uri);
+    a.setAttribute('download', 'AstroLog_Observations.json');
+    a.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error('Not an array');
+        setObservations(data);
+        alert(`${data.length} observations loaded!`);
+      } catch (err) {
+        alert('Failed to load: ' + err.message);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSaveKey = () => {
+    setApiKey(keyInput.trim());
+    localStorage.setItem('gemini_api_key', keyInput.trim());
+    alert('API key saved!');
+  };
+
+  return (
+    <div className="space-y-8 max-w-2xl mx-auto">
+      <div>
+        <h2 className="text-3xl font-bold text-white">Settings</h2>
+        <p className="text-slate-300 mt-2">Manage your application data and preferences.</p>
+      </div>
+
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg space-y-4">
+        <h3 className="text-xl font-semibold text-cyan-400">Gemini API Key</h3>
+        <p className="text-slate-400 text-sm">Required to use the "What's Visible Tonight?" feature. Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">Google AI Studio</a>.</p>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={keyInput}
+            onChange={e => setKeyInput(e.target.value)}
+            placeholder="AIza..."
+            className="flex-1 bg-slate-700 border border-slate-600 rounded p-2 text-white focus:outline-none focus:border-cyan-500"
+          />
+          <button onClick={handleSaveKey} className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded transition-colors">Save</button>
+        </div>
+        {apiKey && <p className="text-green-400 text-sm">✓ API key is set</p>}
+      </div>
+
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg space-y-4">
+        <h3 className="text-xl font-semibold text-cyan-400">Data Management</h3>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button onClick={handleSave}
+            className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+            Save Observations to File
+          </button>
+          <button onClick={() => fileInputRef.current?.click()}
+            className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
+            Load Observations from File
+          </button>
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── App ────────────────────────────────────────────────────────────────────
+const App = () => {
+  const [activeTab, setActiveTab] = useState(Tab.Home);
+  const [observations, setObservations] = useState(() => {
+    try {
+      const saved = localStorage.getItem('astrolog_observations');
+      return saved ? JSON.parse(saved) : INITIAL_OBSERVATIONS;
+    } catch { return INITIAL_OBSERVATIONS; }
+  });
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+
+  useEffect(() => {
+    try { localStorage.setItem('astrolog_observations', JSON.stringify(observations)); } catch {}
+  }, [observations]);
+
+  const renderTab = () => {
+    switch (activeTab) {
+      case Tab.Home:
+        return <HomePage observations={observations} setObservations={setObservations} apiKey={apiKey} />;
+      case Tab.Observations:
+        return <ObservationsPage observations={observations} setObservations={setObservations} />;
+      case Tab.Resources:
+        return <ResourcesPage />;
+      case Tab.Calendar:
+        return <CalendarPage observations={observations} />;
+      case Tab.Settings:
+        return <SettingsPage observations={observations} setObservations={setObservations} apiKey={apiKey} setApiKey={setApiKey} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900">
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {renderTab()}
+      </main>
+    </div>
+  );
+};
+
+// ── Render ─────────────────────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
 </html>
